@@ -42,8 +42,3 @@ IGNORE_TESTS = [
     'chi-sq-gof',
     'gmm',
 ]
-
-LENGTH_BY_FOLDER = {
-    'mllib': 18,
-    'spark': 1,
-}

@@ -29,7 +29,7 @@ class MetricsData:
         file_list = os.listdir(self.input_path)
 
         for folder in file_list:
-            path = os.path.join('results', folder)
+            path = os.path.join(self.input_path, folder)
             if not os.path.isdir(path):
                 continue
             test_name = folder.split('_')[0]

@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 requires = [
-    'pandas',
+    'pandas>=0.20',
     'xlsxwriter',
 ]
 

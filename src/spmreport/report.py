@@ -2,6 +2,10 @@ import os
 import sys
 import argparse
 
+from datetime import datetime, timezone
+
+import re
+
 from collections import defaultdict
 import pandas as pd
 # import pandas.io.formats.excel as fmt_xl
@@ -33,11 +37,22 @@ class MetricsData:
     def get_data_from_folder(self):
         file_list = os.listdir(self.input_path)
 
-        for folder in file_list:
-            path = os.path.join(self.input_path, folder)
+        for folder_name in file_list:
+            path = os.path.join(self.input_path, folder_name)
             if not os.path.isdir(path):
                 continue
-            test_name = folder.split('_')[0]
+            test_name = folder_name.split('_')[0]
+
+            if self.calculate_cpu_congestion:
+                date_str = re.findall(
+                    r'\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}',
+                    folder_name
+                )[0]
+                start_date = datetime.strptime(date_str, '%Y-%m-%d_%H-%M-%S') \
+                    .replace(tzinfo=timezone.utc) \
+                    .timestamp()
+                self.start_date = min(self.start_date, start_date)
+
             self.initialize_test_data(test_name)
             for file in os.listdir(path):
                 name, ext = os.path.splitext(file)
@@ -117,8 +132,6 @@ def write_results(results_data, output_path, calculate_cpu_congestion=False):
     header_format = workbook.add_format({
         'bold': True,
         'text_wrap': True,
-        'valign': 'top',
-        'fg_color': '#D7E4BC',
         'border': 1,
         'font_name': 'Times New Roman'
     })
@@ -130,7 +143,7 @@ def write_results(results_data, output_path, calculate_cpu_congestion=False):
             continue
 
         # frame.style.format({'B': "{:0<4.0f}", 'D': '{:+.2f}'})
-        frame.to_excel(writer, sheet_name=folder, startrow=1, header=False)
+        frame.to_excel(writer, sheet_name=folder, startrow=1, startcol=1, header=False, index=False)
         # frame.style.set_properties(**{"font_name": "Times New Roman"})
         data_length = len(frame.index) + 1
 
@@ -139,6 +152,9 @@ def write_results(results_data, output_path, calculate_cpu_congestion=False):
         # Write the column headers with the defined format.
         for col_num, value in enumerate(frame.columns.values):
             worksheet.write(0, col_num + 1, value, header_format)
+
+        for row_num, value in enumerate(frame.index):
+            worksheet.write(row_num + 1, 0, value, header_format)
 
         for index, col in enumerate(COLUMNS_RANGE):
             chart = workbook.add_chart({'type': 'column'})
@@ -164,6 +180,7 @@ def write_results(results_data, output_path, calculate_cpu_congestion=False):
             )  # chr(65) = A
     if results_data.calculate_cpu_congestion:
         # in seconds
+        print(results_data.start_date)
         totals_data = {
             'start_date': {
                 'name': 'Дата старта',
